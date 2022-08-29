@@ -4,7 +4,12 @@ from spacy.matcher import PhraseMatcher
 import random
 from pathlib import Path
 
-import counta_bot
+# TODOs: Solve Sys Override
+import sys
+from pathlib import Path
+sys.path[0] = str(Path(sys.path[0]).parent)
+
+from utils.keyphrase_extraction import exctract_keyphrase
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -14,7 +19,7 @@ neg = [w.replace("\n", "") for w in open("../../data/lexicon/negative_lex.txt")]
 
 ### STANCE-CLAIM DETECTION ###
 def sentence_stance(sentence):
-    keyphrase = keyphrase_extraction.exctract_keyphrase(str(claim), n_gram=3)[0]
+    keyphrase = exctract_keyphrase(str(claim), n_gram=3)[0]
     keyphrase = nlp(keyphrase)
 
     compound_word = ""
@@ -26,6 +31,19 @@ def sentence_stance(sentence):
 
     pos_score = 0.0
     neg_score = 0.0
+
+    # Pattern Match
+    phrase_matcher = PhraseMatcher(nlp.vocab)
+
+    patterns = [nlp(compound_word)]
+    phrase_matcher.add("phrases", None, *patterns)
+
+    start = 0
+    stop = 0
+    matched_phrases = phrase_matcher(claim)
+    for i, j, k in matched_phrases:
+        start = j
+        stop = k
 
     for idx, tok in enumerate(claim):
 
@@ -64,6 +82,6 @@ def sentence_stance(sentence):
     return stance
 
 id = random.randint(0, 1000)
-claim =  nlp("abortion should be legalised")
+claim =  nlp("I do not believe abortion should be legal")
 
-sentence_stance(claim)
+print(sentence_stance(claim))
