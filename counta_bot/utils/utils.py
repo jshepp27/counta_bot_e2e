@@ -6,6 +6,9 @@ from functools import wraps
 
 nlp = spacy.load("en_core_web_sm")
 
+import os
+os.path.join(os.path.dirname(__file__)) 
+
 def paragraphs(document):
     start = 0
     document = nlp(document)
