@@ -4,12 +4,11 @@ from spacy.matcher import PhraseMatcher
 import random
 from pathlib import Path
 
-# TODOs: Solve Sys Override
-import sys
-from pathlib import Path
-sys.path[0] = str(Path(sys.path[0]).parent)
+# TODOs: Handel multiple Keyphrases
+# TODOs: Provide KP as input
 
-from utils.keyphrase_extraction import exctract_keyphrase
+import utils
+from utils.keyphrase_extraction import extract_keyphrase
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -18,12 +17,19 @@ pos = [w.replace("\n", "") for w in open("../../data/lexicon/positive_lex.txt")]
 neg = [w.replace("\n", "") for w in open("../../data/lexicon/negative_lex.txt")]
 
 ### STANCE-CLAIM DETECTION ###
-def sentence_stance(sentence):
-    keyphrase = exctract_keyphrase(str(claim), n_gram=3)[0]
-    keyphrase = nlp(keyphrase)
+# def sentence_stance(sentence, target):
+def sentence_stance(sentence, target=None):
+    sentence = nlp(sentence)
+    
+    if target == None:
+        # Extract Aspect
+        aspect = extract_keyphrase(str(sentence), n_gram=3)[0]
+        aspect = nlp(aspect)
+
+    else: aspect = nlp(target)
 
     compound_word = ""
-    for i in keyphrase:
+    for i in aspect:
         if i.pos_ in ["NOUN", "PROPN"]:
             comps = "".join([str(j) for j in i.children if j.dep_ == "compound"])
             if comps:
@@ -40,12 +46,12 @@ def sentence_stance(sentence):
 
     start = 0
     stop = 0
-    matched_phrases = phrase_matcher(claim)
+    matched_phrases = phrase_matcher(sentence)
     for i, j, k in matched_phrases:
         start = j
         stop = k
 
-    for idx, tok in enumerate(claim):
+    for idx, tok in enumerate(sentence):
 
         if idx == start or idx == stop - 1:
             continue
@@ -77,9 +83,11 @@ def sentence_stance(sentence):
     stance = ""
 
     neg_score, pos_score
-    stance = {"claim": claim, "stance": "PRO", "aspect": keyphrase} if result > 0 else {"claim": claim, "stance": "CON", "aspect": keyphrase}
+    stance = {"claim": sentence, "stance": "PRO", "aspect": aspect} if result > 0 else {"claim": sentence, "stance": "CON", "aspect": aspect}
 
     return stance
+
+### TEST STATEMENT ###
 
 id = random.randint(0, 1000)
 claim =  nlp("I do not believe abortion should be legal")
