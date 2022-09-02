@@ -4,8 +4,8 @@ from spacy.matcher import PhraseMatcher
 import random
 from pathlib import Path
 
-import sys
-sys.path.append('./')
+# import sys
+# sys.path.append('./')
 
 from counta_bot.utils.keyphrase_extraction import extract_keyphrase
 import re
@@ -14,25 +14,28 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from fuzzywuzzy import fuzz, process
 
-# filepath = Path(__file__).parent
+import sys
+sys.pwd()
+
+#filepath = Path(__file__).parent
 nlp = spacy.load("en_core_web_sm")
 phrase_matcher = PhraseMatcher(nlp.vocab)
-
 
 # TODOs: Package as a Module
 # TODOs: Handle Negation (Polarity shifters)
 # TODOs: Review Unsuperived Approach; Consider adveanced patterns and common-sence knowledge
 
 ### STANCE SCORING ###
-# TODOs: https://www.cs.uic.edu/~liub/FBS/opinion-mining-final-WSDM.pdf 
+# TODOs: https://www.cs.uic.edu/~liub/FBS/opinion-mining-final-WSDM.pdf
 # TODOs: Pattern based Negation
 # TODOs: Semantic Orientation of an opinion (Claim)
 # TODOs:Group synonyms of 'features', 'targets'
-
+import os
+print(os.getcwd())
 
 ### SENTIMENT LEXICONS ###
-pos = [w.replace("\n", "") for w in open("../../data/lexicon/positive_lex.txt")]
-neg = [w.replace("\n", "") for w in open("../../data/lexicon/negative_lex.txt")]
+pos = [w.replace("\n", "") for w in open("../data/lexicon/positive_lex.txt")]
+neg = [w.replace("\n", "") for w in open("../data/lexicon/negative_lex.txt")]
 
 ### STANCE: ASPECT-SEMANTIC ORIENTATION ###
 def extract_aspect(sentence, n_gram):
