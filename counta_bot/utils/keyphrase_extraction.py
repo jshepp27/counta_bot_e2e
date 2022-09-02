@@ -13,7 +13,7 @@ def extract_keyphrase(doc, n_gram=3, n_kp=3, use_mmr="False", use_maxsum="False"
         print("No Keywords")
 
     if kp == None:
-        return kp
+        return []
 
     else: return [i[0] for i in kp[0:n_kp]]     
 

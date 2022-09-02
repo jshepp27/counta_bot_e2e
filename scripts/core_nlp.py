@@ -5,12 +5,17 @@ import stanza
 from pathlib import Path
 import os
 import logging
+# import sys
+# sys.path.append('/path/to/dir')
+
+from counta_bot.utils.keyphrase_extraction import extract_keyphrase
+filepath = Path(__file__).parent
 
 logging.basicConfig(level=logging.INFO)
+
 # TODOs: Set Logger Name as Configuration
 logger = logging.getLogger("COUNTA-BOT")
 
-filepath = Path(__file__).parent
 stanza.download("en")
 
 # TODOs: Rename Module
@@ -23,7 +28,7 @@ def run_nlp():
     count = 0
 
     logger.info(f"[Lemmatizing arguments ... ]")
-    for ln in data:
+    for ln in data[0:100]:
         count += 1
         ln = json.loads(ln)
 
@@ -35,7 +40,6 @@ def run_nlp():
 
     fout.close()
     logger.info(f"[Loaded {count} arguments ... ]")
-
 
 if __name__ == "__main__":
     run_nlp()

@@ -3,12 +3,18 @@ import spacy
 from spacy.matcher import PhraseMatcher
 import random
 from pathlib import Path
-from utils.keyphrase_extraction import extract_keyphrase
+
+import sys
+sys.path.append('./')
+
+from counta_bot.utils.keyphrase_extraction import extract_keyphrase
 import re
 
 import spacy
 from spacy.matcher import PhraseMatcher
 from fuzzywuzzy import fuzz, process
+
+filepath = Path(__file__).parent
 
 nlp = spacy.load("en_core_web_sm")
 
