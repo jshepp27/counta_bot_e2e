@@ -14,22 +14,21 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from fuzzywuzzy import fuzz, process
 
-filepath = Path(__file__).parent
-
+# filepath = Path(__file__).parent
 nlp = spacy.load("en_core_web_sm")
+phrase_matcher = PhraseMatcher(nlp.vocab)
+
 
 # TODOs: Package as a Module
 # TODOs: Handle Negation (Polarity shifters)
 # TODOs: Review Unsuperived Approach; Consider adveanced patterns and common-sence knowledge
 
 ### STANCE SCORING ###
-
 # TODOs: https://www.cs.uic.edu/~liub/FBS/opinion-mining-final-WSDM.pdf 
 # TODOs: Pattern based Negation
 # TODOs: Semantic Orientation of an opinion (Claim)
 # TODOs:Group synonyms of 'features', 'targets'
 
-phrase_matcher = PhraseMatcher(nlp.vocab)
 
 ### SENTIMENT LEXICONS ###
 pos = [w.replace("\n", "") for w in open("../../data/lexicon/positive_lex.txt")]
@@ -43,9 +42,9 @@ def extract_aspect(sentence, n_gram):
 
 def index_aspect(phrase, aspect, sentence):
     # Init NLP Objects
-    sentence = nlp(sentence)    
+    sentence = nlp(sentence)
     patterns = [nlp(aspect)]
-    
+
     phrase_matcher.add(phrase, None, *patterns)
 
     start = 0
@@ -54,10 +53,9 @@ def index_aspect(phrase, aspect, sentence):
     matched_phrases = phrase_matcher(sentence)
     for i in matched_phrases:
         _, start, stop = i
-        
+
     return start, stop
 
-# TODOs: Implement Polarity Shifters, Simple
 # TODOs: Implement Polarity Shifters, Complex, Verb Patterns
 def stance_score(start, stop, sentence):
     sentence = nlp(sentence)
@@ -74,92 +72,100 @@ def stance_score(start, stop, sentence):
         # TODOs: Experiement with descriptive term + keyphrase aspects
         # TODOs: ABSA https://www.kaggle.com/code/phiitm/aspect-based-sentiment-analysis
         # Use external libaray: Textblob
-        
+
         k = 8
         # Negation Rules
         if tok.dep_ == "neg":
             if tok.text in pos:
                 # Shift to Negative
                 if idx <= k:
-                    if idx < start: neg_score += 1/(start - idx)
-                    else: neg_score += 1/(idx - stop)**0.5
+                    if idx < start:
+                        neg_score += 1 / (start - idx)
+                    else:
+                        neg_score += 1 / (idx - stop) ** 0.5
 
             if str(tok.head.text) in neg:
                 # Shift to Positive
-                if idx < start: pos_score += 1/(start - idx)
-                elif idx > start: pos_score += 1/(idx - stop)**0.5
-                else: continue
+                if idx < start:
+                    pos_score += 1 / (start - idx)
+                elif idx > start:
+                    pos_score += 1 / (idx - stop) ** 0.5
+                else:
+                    continue
 
         # Aspect Sentement Orientation
         if str(tok.text) in pos:
-            if idx < start: pos_score += 1/(start - idx)
-            else: pos_score += 1/(idx - stop)**0.5
+            if idx < start:
+                pos_score += 1 / (start - idx)
+            else:
+                pos_score += 1 / (idx - stop) ** 0.5
 
         if str(tok.text) in neg:
-            if idx <= start: neg_score += 1/(start - idx)
-            else: neg_score += 1/(idx - stop)**0.5
-    
-    score = pos_score - neg_score /(pos_score + neg_score + 1)
+            if idx <= start:
+                neg_score += 1 / (start - idx)
+            else:
+                neg_score += 1 / (idx - stop) ** 0.5
+
+    score = pos_score - neg_score / (pos_score + neg_score + 1)
 
     return score
 
+
 def overlap_score(evidence_kp, adu_kp):
     score = 0
-    
+
     # Split Keyphrase into components, scoring partial units as overlap
     for i in evidence_kp:
         for j in i.split():
             # Ensure string value, to enact .find
-            if " ".join(adu_kp).find(j) != -1: 
+            if " ".join(adu_kp).find(j) != -1:
                 score += 1
                 token = j
-            
-            else: continue
-    
+
+            else:
+                continue
+
     return score
+
 
 def get_overlapping_token(evidence_kp, adu_kp):
     for i in evidence_kp:
         overlap_tokens = []
         for j in i.split():
-            if " ".join(adu_kp).find(j) != -1: 
-                overlap_tokens.append(j) 
-            
+            if " ".join(adu_kp).find(j) != -1:
+                overlap_tokens.append(j)
+
         return " ".join(i for i in overlap_tokens)
 
-def sentence_stance(sentence, aspect):
+
+def sentence_stance(adu, aspect):
     aspect = " ".join(i for i in aspect)
 
-    start, stop = index_aspect("aspects", aspect, sentence)
-    score = stance_score(start, stop, sentence)
+    start, stop = index_aspect("aspects", aspect, adu)
+    score = stance_score(start, stop, adu)
 
-    # TODOs: Add Neutral
     return "PRO" if score > 0 else "CON" if score < 0 else "NEUTRAL"
 
-def fuzzy_match(target, ev_unit):
 
-    overlapping_aspect = process.extractOne(target, ev_unit.split())[0]
-    score = overlapping_aspect[1]
+def fuzzy_match(ev_unit, target):
+    overlapping_aspect = process.extractOne(ev_unit, target.split())[0]
+    score = overlapping_aspect
 
     overlapping_aspect = re.sub(r'[^\w]', ' ', overlapping_aspect)
-
     return overlapping_aspect, score
 
-def compare_stance(ev_unit, ev_aspect, adu_target):
-    ev_aspect = "".join(i for i in ev_aspect)
 
-    # Note: Already identified mathcing or partially matching Aspects. 
-
+def compare_stance(ev_unit, adu_target):
     # Get the overlapping evidence aspect-target.
-    overlapping_target, score = fuzzy_match(target=adu_target, ev_unit=ev_unit)
-    
+    overlapping_target, score = fuzzy_match(ev_unit=ev_unit, target=adu_target)
+
     # Get position of the overlapping_target
     start, stop = index_aspect("OVERLAP", overlapping_target, ev_unit)
 
     # Assert Stance towards evidence aspect
     score = stance_score(start, stop, ev_unit)
-    
-    return "PRO" if score > 0 else "CON"
+
+    return str("PRO") if score > 0 else str("CON")
 
 ### TEST STATEMENTS ###
 
@@ -171,12 +177,12 @@ claim =  nlp("I do not believe abortion should be legal")
 test_1 = "The mutual trust and understanding you share with your partner will lead to better sex, but that's not the only reason sex can be better when you're in a relationship."
 test_1_aspect = " ".join(i for i in extract_keyphrase(test_1, n_kp=1))
 
-test_2 = 'Hello! Let me preface by saying I dont believe there is not a better sex.'
+test_2 = 'Hello! Let me preface by saying I dont believe there is a better sex.'
 test_2_aspect = " ".join(i for i in extract_keyphrase(test_2, n_kp=1))
 
 test_3 = "These simple ideas and techniques could help both you and your lover enjoy sex. Think beyond the thrust."
 
 print(test_1, sentence_stance(test_1, test_1_aspect), test_1_aspect)
-print(test_2, compare_stance(test_1, test_2_aspect, test_1_aspect), test_2_aspect)
+print(test_2, compare_stance(test_2, test_1_aspect), test_2_aspect)
 
 
