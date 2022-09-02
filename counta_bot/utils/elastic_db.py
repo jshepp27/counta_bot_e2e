@@ -57,7 +57,7 @@ class ElasticDB(object):
 
     def search(self, query_, k=5):
         results = self.es.search(
-            index = self.elastic_index,
+            index = "*",
             query = {
                 "match": {
                     "document.text": query_,
