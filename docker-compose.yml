@@ -7,10 +7,8 @@ services:
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
     volumes:
-    - ./_knowledge:/usr/share/elasticsearch/data
-#   - ./knowledge_base:/usr/share/elasticsearch/data
-      # - ./knowledge_base_:/usr/share/elasticsearch/data
-#      - ./esdata:/usr/share/elasticsearch/data
+     - ./knowledge_base:/usr/share/elasticsearch/data
+#    - ./_knowledge:/usr/share/elasticsearch/data
 
     ports:
       - target: 9200
