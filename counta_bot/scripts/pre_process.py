@@ -22,8 +22,7 @@ def unique_entries(data, key="id"):
         unique_.append({
             "id": i["id"],
             "titles": i["titles"],
-            "argument": i["arguments"],
-            "counters": i["counters"]
+            "argument": i["arguments"]
         })
 
     return unique_
@@ -61,7 +60,7 @@ if __name__ == "__main__":
     logger.info("[Pre-processor Initialised]")
 
     ### LOAD DATA ###
-    args = [json.loads(ln) for ln in open("../../data/train_cmv_cleaned.jsonl")]
+    args = [json.loads(ln) for ln in open("../data/train_cmv_cleaned.jsonl")]
     logger.info(f"[{len(args)} Arguments Processed]")
 
     ### EXTRACT UNIQUE ###
@@ -78,24 +77,16 @@ if __name__ == "__main__":
     logger.info(f"[{len(stance)} Stance Polarities Processed]")
 
     ### WRITE TO DISK ###
-    fout = open("../../data/processed_train_cmv.jsonl", "w")
+    fout = open("../data/processed_train_cmv.jsonl", "w")
 
-    with tqdm(total=(len(unique_))) as pbar:
-        print("fuck you")
-        with fout:
-            for i, j, k in zip(unique_, aspects, stance):
-                fout.write(json.dumps([{
-                    "id": i["id"],
-                    "title": i["titles"],
-                    "argument": i["argument"],
-                    "keyphrase": j,
-                    "stance": k,
-                    "counter": i["counters"]
-                }]))
+    with fout:
+        for i, j, k in zip(unique_, aspects, stance):
+            fout.write(json.dumps([{
+                "id": i["id"],
+                "title": i["titles"],
+                "argument": i["argument"],
+                "keyphrase": j,
+                "stance": k
+            }]))
 
-                fout.write("\n")
-                pbar.update()
-
-
-
-    logger.info(f"[{len(unique_)} Data Stored to Disk]")
+        fout.write("\n")

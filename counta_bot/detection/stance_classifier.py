@@ -14,6 +14,9 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from fuzzywuzzy import fuzz, process
 
+import sys
+sys.pwd()
+
 #filepath = Path(__file__).parent
 nlp = spacy.load("en_core_web_sm")
 phrase_matcher = PhraseMatcher(nlp.vocab)
@@ -31,8 +34,8 @@ import os
 print(os.getcwd())
 
 ### SENTIMENT LEXICONS ###
-pos = [w.replace("\n", "") for w in open("../../data/lexicon/positive_lex.txt")]
-neg = [w.replace("\n", "") for w in open("../../data/lexicon/positive_lex.txt")]
+pos = [w.replace("\n", "") for w in open("../data/lexicon/positive_lex.txt")]
+neg = [w.replace("\n", "") for w in open("../data/lexicon/negative_lex.txt")]
 
 ### STANCE: ASPECT-SEMANTIC ORIENTATION ###
 def extract_aspect(sentence, n_gram):

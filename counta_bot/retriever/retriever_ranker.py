@@ -1,14 +1,14 @@
 import json
 import logging
+import sys
 import re
+sys.path.append('./')
 
 from counta_bot.utils.elastic_db import ElasticDB
 from counta_bot.detection.stance_classifier import sentence_stance, compare_stance
 from yake import KeywordExtractor
 import tqdm.notebook as tqdm
 from tqdm import tqdm
-
-
 
 ### FAST-NLP REGEX UTILS ###
 def sentences_segment(doc):
@@ -25,27 +25,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("RETRIEVER_RANKER")
 logger.info("[Retriever Initialised]")
 
+### LOAD DATA ###
+args = [json.loads(ln) for ln in open("./data/processed_train_cmv.jsonl")]
+
 ### RETRIEVER-RANKER ###
 kw_extractor = KeywordExtractor(lan="en", n=3, top=5)
 
 # TODOs: Refactor as Class Object
-# TODOs: ArgParse for using Claims vs Argument Sentences
-
-def retrieved_evidence(arg, use_claims=False, min_token_len=8):
-    if use_claims:
-        logger.info("[Using Claims ... ]")
-        ad_units = sentences_segment(arg["title"])
-    else:
-        ad_units = sentences_segment(arg["argument"])
-        logger.info("[Using Argument Sentences ... ]")
+def retrieved_evidence(arg):
+    ad_units = sentences_segment(arg["argument"])
 
     results = []
-    counter = sentences_segment(arg["counter"])
 
     for adu in ad_units:
         toks = re.findall(r"\w+(?:'\w+)?|[^\w\s]", adu)
 
-        if len(toks) <= min_token_len:
+        if len(toks) <= 8:
             continue
 
         kp = arg["keyphrase"]
@@ -59,7 +54,6 @@ def retrieved_evidence(arg, use_claims=False, min_token_len=8):
             results.append({
                 "tid": arg["id"],
                 "argument_discourse_unit": adu,
-                "counter": counter,
                 "retrieved_documents_titles": titles,
                 "query": query,
                 "adu_keyphrases": [i for i in kp],
@@ -139,38 +133,28 @@ def score_evidence(retrieved_evidence):
 
 ### RANKED EVIDENCE ###
 def rank_filter_counter_evidence(retireved_evidence, k=3):
-    with tqdm(total=(len(retrieved_ev)), position=0, leave=True) as pbar:
+    with tqdm(total=(len(retrieved_ev))) as pbar:
         for i in score_evidence(retrieved_ev):
             yield sorted(i, key=lambda y: y["overlap"], reverse=True)[0:k]
 
             pbar.update()
 
 if __name__ == "__main__":
-    CLAIMS = True
-    MIN_TOKEN_LEN = 1
-
-    ### LOAD DATA ###
-    args = [json.loads(ln) for ln in open("./data/processed_train_cmv.jsonl")]
-
     # TODOs: All Data
     logger.info("[Retriever Running ...]")
 
     logger.info("[Running Queries ...]")
     retrieved_ev = []
     for arg in args[0:100]:
-        retrieved_ev.append(retrieved_evidence(arg[0], use_claims=CLAIMS, min_token_len=MIN_TOKEN_LEN))
+        retrieved_ev.append(retrieved_evidence(arg[0]))
 
     logger.info("[Ranking Results ...]")
     ranked_sorted_evidence = [i for i in rank_filter_counter_evidence(retrieved_ev)]
+    print(ranked_sorted_evidence)
 
-    # TODOs: Why Refresh Data?
-    args = [json.loads(ln) for ln in open("./data/processed_train_cmv.jsonl")]
-    if CLAIMS == True:
-        fout = open("./data/gpt_ft_kg/arguments_counters_evidence.jsonl", "w")
+    #args = [json.loads(ln) for ln in open("./data/processed_train_cmv.jsonl")]
 
-    else:
-        fout = open("./data/rr_counter_evidence.jsonl", "w")
-
+    fout = open("./data/rr_counter_evidence.jsonl", "w")
     logger.info("[Writing to Disk ...]")
     for args, adus in zip(args, ranked_sorted_evidence):
         for arg in args:
@@ -188,13 +172,8 @@ if __name__ == "__main__":
 
             fout.write(json.dumps([{
                 "ids": arg["id"],
-                "claim": arg["title"],
-                "argument": arg["argument"],
-                "counter": arg["counter"],
-                "rank_retrieved_filered": adus_,
+                "rank_retrieved_filered": adus_
             }]))
 
             fout.write("\n")
-
-    logger.info("[Writed to Disk ...]")
 
