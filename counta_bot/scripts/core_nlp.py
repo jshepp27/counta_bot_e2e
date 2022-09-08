@@ -22,7 +22,7 @@ stanza.download("en")
 # TODOs: Implement tqdm progress bar
 def run_nlp():
     nlp = stanza.Pipeline("en", processors='tokenize,pos,lemma')
-    data = [ln.strip() for ln in open(filepath/"../data/train_cmv_cleaned.jsonl")]
+    data = [ln.strip() for ln in open(filepath/"../data/cmv_cleaned.jsonl")]
 
     fout = open(filepath/"../data/lemma.jsonl", 'w')
     count = 0

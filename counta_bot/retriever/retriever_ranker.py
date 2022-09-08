@@ -31,16 +31,13 @@ kw_extractor = KeywordExtractor(lan="en", n=3, top=5)
 # TODOs: Refactor as Class Object
 # TODOs: ArgParse for using Claims vs Argument Sentences
 
-def retrieved_evidence(arg, use_claims=False, min_token_len=8):
-    if use_claims:
-        logger.info("[Using Claims ... ]")
-        ad_units = sentences_segment(arg["title"])
-    else:
-        ad_units = sentences_segment(arg["argument"])
-        logger.info("[Using Argument Sentences ... ]")
+def retrieved_evidence(arg, min_token_len=8):
+    ad_units = sentences_segment(arg["argument"]["argument"])
+    ad_units = ad_units
+    logger.info("[Using Argument Sentences ... ]")
 
     results = []
-    counter = sentences_segment(arg["counter"])
+    counter = sentences_segment(arg["counter_tgt"]["counter"])
 
     for adu in ad_units:
         toks = re.findall(r"\w+(?:'\w+)?|[^\w\s]", adu)
@@ -48,7 +45,7 @@ def retrieved_evidence(arg, use_claims=False, min_token_len=8):
         if len(toks) <= min_token_len:
             continue
 
-        kp = arg["keyphrase"]
+        kp = arg["argument"]["arg_keyphrases"]
 
         if kp:
             query = ", ".join(i for i in kp)
@@ -59,11 +56,11 @@ def retrieved_evidence(arg, use_claims=False, min_token_len=8):
             results.append({
                 "tid": arg["id"],
                 "argument_discourse_unit": adu,
+                "adu_stance": sentence_stance(adu, kp),
                 "counter": counter,
                 "retrieved_documents_titles": titles,
                 "query": query,
                 "adu_keyphrases": [i for i in kp],
-                "adu_stance": sentence_stance(adu, kp),
                 "retrieved_evidence": evidence,
                 "merged_evidence": ", ".join(ln for ln in evidence)
             })
@@ -146,7 +143,6 @@ def rank_filter_counter_evidence(retireved_evidence, k=3):
             pbar.update()
 
 if __name__ == "__main__":
-    CLAIMS = True
     MIN_TOKEN_LEN = 1
 
     ### LOAD DATA ###
@@ -158,20 +154,16 @@ if __name__ == "__main__":
     logger.info("[Running Queries ...]")
     retrieved_ev = []
     for arg in args[0:100]:
-        retrieved_ev.append(retrieved_evidence(arg[0], use_claims=CLAIMS, min_token_len=MIN_TOKEN_LEN))
+        retrieved_ev.append(retrieved_evidence(arg[0], min_token_len=MIN_TOKEN_LEN))
 
     logger.info("[Ranking Results ...]")
     ranked_sorted_evidence = [i for i in rank_filter_counter_evidence(retrieved_ev)]
 
     # TODOs: Why Refresh Data?
     args = [json.loads(ln) for ln in open("./data/processed_train_cmv.jsonl")]
-    if CLAIMS == True:
-        fout = open("./data/gpt_ft_kg/arguments_counters_evidence.jsonl", "w")
 
-    else:
-        fout = open("./data/rr_counter_evidence.jsonl", "w")
+    fout = open("./data/train_cmv.jsonl", "w")
 
-    logger.info("[Writing to Disk ...]")
     for args, adus in zip(args, ranked_sorted_evidence):
         for arg in args:
             adus_ = []
@@ -186,15 +178,14 @@ if __name__ == "__main__":
                     "adu_stance": unit["adu_stance"],
                 })
 
-            fout.write(json.dumps([{
+            fout.write(json.dumps({
                 "ids": arg["id"],
                 "claim": arg["title"],
                 "argument": arg["argument"],
-                "counter": arg["counter"],
-                "rank_retrieved_filered": adus_,
-            }]))
-
+                "counter_tgt": arg["counter_tgt"],
+                "retrieved_passages": adus_,
+            }))
             fout.write("\n")
 
-    logger.info("[Writed to Disk ...]")
+    logger.info("[Writen to Disk ...]")
 
